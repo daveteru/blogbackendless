@@ -1,9 +1,29 @@
 import Navbar from "../components/Navbar";
 import { ArrowRight, Calendar, User } from "lucide-react";
 import { Link } from "react-router";
-import { blogs } from "../data/blog";
+import { useEffect, useState } from "react";
+import { axiosInstance } from "../lib/axios";
+import type { Blog } from "../types/blogs";
 
 export default function Home() {
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const res = await axiosInstance.get("/data/Blogcucu");
+        console.log("Blogcucu response:", res.data);
+        setBlogs(res.data);
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBlogs();
+  }, []);
+
   return (
     <div>
       <Navbar />
@@ -19,49 +39,53 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {blogs.map((blog) => (
-              <div
-                key={blog.id}
-                className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow"
-              >
-                <img
-                  src={blog.thumbnail}
-                  alt={blog.title}
-                  className="w-full h-48 object-cover"
-                />
+          {loading ? (
+            <p className="text-center text-gray-500">Loading blogs...</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {blogs.map((blog) => (
+                <div
+                  key={blog.objectId}
+                  className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow"
+                >
+                  <img
+                    src={blog.thumbnail ?? undefined}
+                    alt={blog.title}
+                    className="w-full h-48 object-cover"
+                  />
 
-                <div className="p-6">
-                  <h2 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
-                    {blog.title}
-                  </h2>
+                  <div className="p-6">
+                    <h2 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
+                      {blog.title}
+                    </h2>
 
-                  <p className="text-gray-600 mb-4 line-clamp-3">
-                    {blog.description}
-                  </p>
+                    <p className="text-gray-600 mb-4 line-clamp-3">
+                      {blog.bodytext}
+                    </p>
 
-                  <div className="flex items-center text-sm text-gray-500 mb-4 space-x-4">
-                    <div className="flex items-center space-x-1">
-                      <User className="h-4 w-4" />
-                      <span>{blog.author}</span>
+                    <div className="flex items-center text-sm text-gray-500 mb-4 space-x-4">
+                      <div className="flex items-center space-x-1">
+                        <User className="h-4 w-4" />
+                        <span>{blog.author}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="h-4 w-4" />
+                        <span>{new Date(blog.created).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>{blog.date}</span>
-                    </div>
+
+                    <Link
+                      to={`/blog/${blog.objectId}`}
+                      className="inline-flex items-center space-x-2 text-yellow-500 hover:text-purple-600 font-semibold transition-colors"
+                    >
+                      <span>Read More</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
                   </div>
-
-                  <Link
-                    to={`/blog/${blog.id}`}
-                    className="inline-flex items-center space-x-2 text-yellow-500 hover:text-purple-600 font-semibold transition-colors"
-                  >
-                    <span>Read More</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
