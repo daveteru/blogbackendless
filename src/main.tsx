@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import CreateBlog from './pages/Createblog';
 import BlogDetail from './pages/BlogDetail';
+import { authLoader } from './loaders/auth';
 
 
 const router = createBrowserRouter([
@@ -26,6 +27,7 @@ const router = createBrowserRouter([
   {
     path: "/create",
     element: <CreateBlog/>,
+    loader: authLoader,
   },
   {
     path: "/blog/:objectId",

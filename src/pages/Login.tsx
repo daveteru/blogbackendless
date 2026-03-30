@@ -1,5 +1,5 @@
 import { BookOpen, Lock, Mail } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +15,7 @@ const formSchema = z.object({
 function Login() {
   const [isLoad, setIsload] = useState<boolean>(false);
   const login = useLoginStateStore((state) => state.login);
+  const navigate = useNavigate();
 
   const {
     register,
@@ -37,7 +38,8 @@ function Login() {
         email: res.data.email,
         userToken: res.data["user-token"],
       });
-      alert("Login Success");
+      navigate("/");
+      
     } catch (error) {
       console.log(error);
       alert("Login Failed");

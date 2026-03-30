@@ -1,7 +1,57 @@
-import { FileText, User, Image, File as FileEdit } from "lucide-react";
+import { File as FileEdit, FileText, Image, User } from "lucide-react";
+import z from "zod";
 import Navbar from "../components/Navbar";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { axiosInstance } from "../lib/axios";
+import { useState } from "react";
+
+const blogSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  author: z.string().min(1, "Author is required"),
+  description: z.string().min(1, "Description is required"),
+  content: z.string().min(1, "Content is required"),
+  thumbnail: z.instanceof(File, { message: "Thumbnail is required" }),
+});
+
+type blogData = z.infer<typeof blogSchema>;
 
 function CreateBlog() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+  } = useForm({
+    resolver: zodResolver(blogSchema),
+  });
+
+  const onSubmit = async (data: blogData) => {
+    try {
+      const form = new FormData();
+      form.append("file", data.thumbnail);
+      const folderName = "images";
+      const fileName = Date.now() + Math.floor(Math.random() * 1000);
+      const res = await axiosInstance.post(
+        `/files/img/${folderName}/${fileName}`,
+        form,
+      );
+      await axiosInstance.post(`/data/Blogcucu`, {
+        title: data.title,
+        author: data.author,
+        description: data.description,
+        content: data.content,
+        thumbnail: res.data.fileURL,
+      });
+      alert("create blog success");
+    } catch (error) {
+      console.log(error);
+      alert("Create blog failed");
+    }
+  };
+
+  const [isLoading, setIsLoading] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -15,7 +65,7 @@ function CreateBlog() {
             Share your thoughts and ideas with the community
           </p>
 
-          <form className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
               <label
                 htmlFor="title"
@@ -26,14 +76,19 @@ function CreateBlog() {
               <div className="relative">
                 <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <input
+                  {...register("title")}
                   type="text"
                   id="title"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
                   placeholder="Enter your blog title"
                 />
+                {errors.title && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.title.message}
+                  </p>
+                )}
               </div>
             </div>
-
             <div>
               <label
                 htmlFor="description"
@@ -42,13 +97,16 @@ function CreateBlog() {
                 Description
               </label>
               <textarea
+                {...register("description")}
                 id="description"
                 rows={3}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition resize-none"
                 placeholder="Write a brief description of your blog"
               />
+              {errors.description && (
+                <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>
+              )}
             </div>
-
             <div>
               <label
                 htmlFor="author"
@@ -59,14 +117,17 @@ function CreateBlog() {
               <div className="relative">
                 <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <input
+                  {...register("author")}
                   type="text"
                   id="author"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
                   placeholder="Your name"
                 />
               </div>
+              {errors.author && (
+                <p className="text-red-500 text-sm mt-1">{errors.author.message}</p>
+              )}
             </div>
-
             <div>
               <label
                 htmlFor="thumbnail"
@@ -77,12 +138,22 @@ function CreateBlog() {
               <div className="relative">
                 <Image className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <input
+                  {...register("thumbnail")}
                   type="file"
                   id="thumbnail"
                   accept="image/*"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setValue("thumbnail", file);
+                    }
+                  }}
                 />
               </div>
+              {errors.thumbnail && (
+                <p className="text-red-500 text-sm mt-1">{errors.thumbnail.message}</p>
+              )}
             </div>
 
             <div>
@@ -95,17 +166,23 @@ function CreateBlog() {
               <div className="relative">
                 <FileEdit className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <textarea
+                  {...register("content")}
                   id="content"
                   rows={12}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition resize-none"
                   placeholder="Write your blog content here..."
                 />
               </div>
+              {errors.content && (
+                <p className="text-red-500 text-sm mt-1">{errors.content.message}</p>
+              )}
             </div>
 
             <div className="flex gap-4">
               <button
                 type="submit"
+                onClick={() => setIsLoading(true)}
+                disabled={isLoading}
                 className="flex-1 bg-yellow-500 text-white py-3 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow-md"
               >
                 Publish Blog
