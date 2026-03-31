@@ -1,10 +1,11 @@
 import { BookOpen, Lock, Mail, User } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { axiosInstance } from "../lib/axios";
-import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 const formSchema = z
   .object({
@@ -19,7 +20,23 @@ const formSchema = z
   });
 
 function Register() {
-  const [isLoad, setIsload] = useState<boolean>(false);
+  const navigate = useNavigate();
+  const { mutate, isPending } = useMutation({
+    mutationFn: async (payload: { name: string; email: string; password: string }) => {
+      await axiosInstance.post("/users/register", {
+        name: payload.name,
+        email: payload.email,
+        password: payload.password,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Register success!");
+      navigate("/login");
+    },
+    onError: () => {
+      toast.error("Register failed. Please try again.");
+    },
+  });
 
   const {
     register,
@@ -29,25 +46,8 @@ function Register() {
     resolver: zodResolver(formSchema),
   });
 
-  const onSubmit = async (data: {
-    name: string;
-    email: string;
-    password: string;
-  }) => {
-    try {
-      setIsload(true);
-      await axiosInstance.post("/users/register", {
-        name: data.name,
-        email: data.email,
-        password: data.password,
-      });
-      alert("Register Success");
-    } catch (error) {
-      console.log(error);
-      alert("Register Failed");
-    } finally {
-      setIsload(false);
-    }
+  const onSubmit = (data: { name: string; email: string; password: string }) => {
+    mutate(data);
   };
 
   return (
@@ -161,10 +161,10 @@ function Register() {
 
           <button
             type="submit"
-            disabled={isLoad}
+            disabled={isPending}
             className="w-full bg-yellow-500 text-white py-3 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoad ? "Registering..." : "Register"}
+            {isPending ? "Registering..." : "Register"}
           </button>
         </form>
 

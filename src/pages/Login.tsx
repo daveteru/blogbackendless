@@ -4,8 +4,9 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { axiosInstance } from "../lib/axios";
-import { useState } from "react";
 import { useLoginStateStore } from "../stores/useLoginStateStore";
+import toast from "react-hot-toast";
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   email: z.string().email("invalid email"),
@@ -13,7 +14,6 @@ const formSchema = z.object({
 });
 
 function Login() {
-  const [isLoad, setIsload] = useState<boolean>(false);
   const login = useLoginStateStore((state) => state.login);
   const navigate = useNavigate();
 
@@ -25,27 +25,26 @@ function Login() {
     resolver: zodResolver(formSchema),
   });
 
-  const onSubmit = async (data: { email: string; password: string }) => {
-    try {
-      setIsload(true);
-      const res = await axiosInstance.post("/users/login", {
-        login: data.email,
-        password: data.password,
+  const { mutateAsync, isPending } = useMutation({
+    mutationFn: async (payload: { email: string; password: string }) => {
+      const response = await axiosInstance.post("/users/login", {
+        login: payload.email,
+        password: payload.password,
       });
-      login({
-        objectId: res.data.objectId,
-        name: res.data.name,
-        email: res.data.email,
-        userToken: res.data["user-token"],
-      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      login(data);
+      toast.success("Login success!");
       navigate("/");
-      
-    } catch (error) {
-      console.log(error);
-      alert("Login Failed");
-    } finally {
-      setIsload(false);
-    }
+    },
+    onError: () => {
+      toast.error("Login failed. Please try again.");
+    },
+  });
+
+  const onSubmit = (data: { email: string; password: string }) => {
+    mutateAsync(data);
   };
 
   return (
@@ -109,10 +108,10 @@ function Login() {
 
           <button
             type="submit"
-            disabled={isLoad}
+            disabled={isPending}
             className="w-full bg-yellow-500 text-white py-3 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoad ? "Logging in..." : "Login"}
+            {isPending ? "Logging in..." : "Login"}
           </button>
         </form>
 
