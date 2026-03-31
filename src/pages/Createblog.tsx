@@ -4,7 +4,9 @@ import Navbar from "../components/Navbar";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { axiosInstance } from "../lib/axios";
-import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router";
 
 const blogSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -26,10 +28,12 @@ function CreateBlog() {
     resolver: zodResolver(blogSchema),
   });
 
-  const onSubmit = async (data: blogData) => {
-    try {
-      const form = new FormData();
-      form.append("file", data.thumbnail);
+  const navigate = useNavigate();
+  
+const {mutateAsync , isPending} = useMutation({
+  mutationFn :async (payload:blogData)=>{
+  const form = new FormData();
+      form.append("file", payload.thumbnail);
       const folderName = "images";
       const fileName = Date.now() + Math.floor(Math.random() * 1000);
       const res = await axiosInstance.post(
@@ -37,20 +41,25 @@ function CreateBlog() {
         form,
       );
       await axiosInstance.post(`/data/Blogcucu`, {
-        title: data.title,
-        author: data.author,
-        description: data.description,
-        content: data.content,
+        title: payload.title,
+        author: payload.author,
+        description: payload.description,
+        content: payload.content,
         thumbnail: res.data.fileURL,
       });
-      alert("create blog success");
-    } catch (error) {
-      console.log(error);
-      alert("Create blog failed");
-    }
-  };
+  },
+    onSuccess: () => {
+      toast.success("blog creation success!");
+      navigate("/login");
+    },
+    onError: () => {
+      toast.error("blog creation failed. Please try again.");
+    },
+})
 
-  const [isLoading, setIsLoading] = useState(false);
+  const onSubmit = (data: blogData) => {
+    mutateAsync(data);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -138,7 +147,6 @@ function CreateBlog() {
               <div className="relative">
                 <Image className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <input
-                  {...register("thumbnail")}
                   type="file"
                   id="thumbnail"
                   accept="image/*"
@@ -146,7 +154,7 @@ function CreateBlog() {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      setValue("thumbnail", file);
+                      setValue("thumbnail", file, { shouldValidate: true });
                     }
                   }}
                 />
@@ -181,8 +189,7 @@ function CreateBlog() {
             <div className="flex gap-4">
               <button
                 type="submit"
-                onClick={() => setIsLoading(true)}
-                disabled={isLoading}
+                disabled={isPending}
                 className="flex-1 bg-yellow-500 text-white py-3 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow-md"
               >
                 Publish Blog

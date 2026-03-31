@@ -1,30 +1,40 @@
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Calendar, User } from "lucide-react";
 import { Link, useParams } from "react-router";
 import Navbar from "../components/Navbar";
-import { useEffect, useState } from "react";
 import { axiosInstance } from "../lib/axios";
-import type { Blog } from "../types/blogs";
 
 function BlogDetail() {
   const { objectId } = useParams();
-  const [blog, setBlog] = useState<Blog | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBlog = async () => {
-      try {
-        const res = await axiosInstance.get(`/data/Blogcucu/${objectId}`);
-        setBlog(res.data);
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBlog();
-  }, [objectId]);
+  // useEffect(() => {
+  //   const fetchBlog = async () => {
+  //     try {
+  //       const res = await axiosInstance.get(`/data/Blogcucu/${objectId}`);
+  //       setBlog(res.data);
+  //     } catch (error) {
+  //       console.log(error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchBlog();
+  // }, [objectId]);
 
-  if (loading) {
+  const {
+    data: blog,
+    isPending,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: [ "blog", objectId],
+    queryFn: async () => {
+      const res = await axiosInstance.get(`/data/Blogcucu/${objectId}`);
+      return res.data;
+    },
+  });
+
+  if (isPending) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -33,11 +43,19 @@ function BlogDetail() {
     );
   }
 
-  if (!blog) {
+  if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <p className="text-center text-gray-500 mt-12">Blog not found.</p>
+        <div className="flex flex-col items-center mt-12 space-y-4">
+          <p className="text-center text-gray-500">Blog not found.</p>
+          <button
+            onClick={() => refetch()}
+            className="px-4 py-2 bg-yellow-500 text-white font-semibold rounded hover:bg-yellow-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }

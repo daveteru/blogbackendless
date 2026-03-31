@@ -1,28 +1,36 @@
-import Navbar from "../components/Navbar";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Calendar, User } from "lucide-react";
 import { Link } from "react-router";
-import { useEffect, useState } from "react";
+import Navbar from "../components/Navbar";
 import { axiosInstance } from "../lib/axios";
 import type { Blog } from "../types/blogs";
 
 export default function Home() {
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [loading, setLoading] = useState(true);
+  // const [blogs, setBlogs] = useState<Blog[]>([]);
+  // const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBlogs = async () => {
-      try {
-        const res = await axiosInstance.get("/data/Blogcucu");
-        console.log("Blogcucu response:", res.data);
-        setBlogs(res.data);
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBlogs();
-  }, []);
+  // useEffect(() => {
+  //   const fetchBlogs = async () => {
+  //     try {
+  //       const res = await axiosInstance.get("/data/Blogcucu");
+  //       console.log("Blogcucu response:", res.data);
+  //       setBlogs(res.data);
+  //     } catch (error) {
+  //       console.log(error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchBlogs();
+  // }, []);
+
+  const { data : blogz , isPending ,error ,refetch} = useQuery({
+    queryKey: ["blogs"],
+    queryFn: async () => {
+      const res = await axiosInstance.get("https://toughground-us.backendless.app/api/data/Users?sortBy=%60created%60%20desc");
+      return res.data;
+    },
+  });
 
   return (
     <div>
@@ -39,11 +47,21 @@ export default function Home() {
             </Link>
           </div>
 
-          {loading ? (
+          {isPending ? (
             <p className="text-center text-gray-500">Loading blogs...</p>
+          ) : error ? (
+            <div className="text-center">
+              <p className="text-red-500 mb-4">Failed to load blogs.</p>
+              <button
+                onClick={() => refetch()}
+                className="bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-600 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {blogs.map((blog) => (
+              {(blogz as Blog[]).map((blog) => (
                 <div
                   key={blog.objectId}
                   className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow"
@@ -70,7 +88,9 @@ export default function Home() {
                       </div>
                       <div className="flex items-center space-x-1">
                         <Calendar className="h-4 w-4" />
-                        <span>{new Date(blog.created).toLocaleDateString()}</span>
+                        <span>
+                          {new Date(blog.created).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
 
